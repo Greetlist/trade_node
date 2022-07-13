@@ -2,18 +2,18 @@
 
 namespace greetlist::trader {
 
-TradeNode::TradeNode(const std::unordered_map<std::string, std::string>&& config) : config_(config) {
+TradeNode::TradeNode(const std::string&& config_file) : config_file_(config_file) {
 }
 
 void TradeNode::Init() {
-  session_manager_ = new TcpSessionManager(config_);
+  session_manager_ = new TcpSessionManager(config_file_);
 }
 
 void TradeNode::Start() {
   session_thread_ = std::thread(
-    []() {
-    session_manager->Init();
-    session_manger->Start();
+    [this]() {
+    session_manager_->Init();
+    session_manager_->Start();
   });
 }
 

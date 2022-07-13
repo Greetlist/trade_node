@@ -18,7 +18,7 @@ namespace greetlist::trader {
 
 class TcpServer {
 public:
-  explicit TcpServer(const int& port, const EventBase* base);
+  explicit TcpServer(const int& port, EventBase* base);
   ~TcpServer();
   TcpServer operator=(const TcpServer& src) = delete;
   bool Init();
@@ -31,12 +31,12 @@ public:
   static constexpr std::size_t socket_buffer_size_ = 1024 * 1024 * 10;
   static constexpr std::size_t read_buffer_size_ = 1024 * 1024 * 10;
   EventBase* base_;
-private:
-  int port_;
-  EvConnListener* listener_;
   ConnectSuccessCallBack conn_callback_;
   DisconnectCallBack disconn_callback_;
   RecvDataCallBack recv_data_callback_;
+private:
+  int port_;
+  EvConnListener* listener_;
 };
 
 // c style callback function

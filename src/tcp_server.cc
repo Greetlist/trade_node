@@ -1,7 +1,7 @@
 #include "tcp_server.h"
 namespace greetlist::trader {
 
-TcpServer::TcpServer(const int& port, const EventBase* base) : base_(base), port_(port), listener_(nullptr) {
+TcpServer::TcpServer(const int& port, EventBase* base) : base_(base), port_(port), listener_(nullptr) {
 }
 
 TcpServer::~TcpServer() {
@@ -58,9 +58,9 @@ bool TcpServer::SetNonBlock(int fd) {
 }
 
 bool TcpServer::SetBufferSize(int fd) {
-  socklen_t l = sizeof(buffer_size_);
-  int set_rev_status = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buffer_size_, l);
-  int set_send_status = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffer_size_, l);
+  socklen_t l = sizeof(socket_buffer_size_);
+  int set_rev_status = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &socket_buffer_size_, l);
+  int set_send_status = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &socket_buffer_size_, l);
   if (set_rev_status < 0 || set_send_status < 0) {
     LOG(ERROR) << "setsockopt error";
     return false;
@@ -68,37 +68,41 @@ bool TcpServer::SetBufferSize(int fd) {
   return true;
 }
 
-void TcpServer::BindCallback(ConnectSuccessCallBack conn_cb, DisconnectCallBack disconn_cb, RecvDataCallBack recv_cb) {
+void TcpServer::BindCallBack(ConnectSuccessCallBack conn_cb, DisconnectCallBack disconn_cb, RecvDataCallBack recv_cb) {
   conn_callback_ = conn_cb;
   disconn_callback_ = disconn_cb;
-  recv_data_call_back_ = recv_cb;
+  recv_data_callback_ = recv_cb;
 }
 
 static void OnClientAccept(EvConnListener* listener, int client_fd, struct sockaddr* addr, int socklen, void* user_arg) {
   evutil_make_socket_nonblocking(client_fd);
   TcpServer* server = reinterpret_cast<TcpServer*>(user_arg);
-  ev_buff = bufferevent_socket_new(server->base_, client_fd, 0);
-  bufferevent_setcb(ev_buff, OnReadFromClient, OnWriteToClient, OnClientEvent, nullptr);
+  EventBuffer* ev_buff = bufferevent_socket_new(server->base_, client_fd, 0);
+  bufferevent_setcb(ev_buff, OnReadFromClient, OnWriteToClient, OnClientEvent, user_arg);
   bufferevent_enable(ev_buff, EV_READ|EV_WRITE);
-  conn_callback_(ev_buff, client_fd);
+  server->conn_callback_(ev_buff, client_fd);
 }
 
 static void OnReadFromClient(EventBuffer* bev, void* ctx) {
-  std::shared_ptr<char> data = std::shared_ptr<char>(new char[read_buffer_size_]);
+  TcpServer* server = reinterpret_cast<TcpServer*>(ctx);
+  std::shared_ptr<char> data = std::shared_ptr<char>(new char[TcpServer::read_buffer_size_]);
   std::size_t n_read;
   while (true) {
-    n_read = bufferevent_read(bev, data.get(), read_buffer_size_);
+    n_read = bufferevent_read(bev, data.get(), TcpServer::read_buffer_size_);
     if (n_read <= 0) {
       break;
     }
   }
-  recv_data_callback_(client_fd, data);
+  int client_fd = bufferevent_getfd(bev);
+  server->recv_data_callback_(client_fd, data);
 }
 
 static void OnWriteToClient(EventBuffer* bev, void* ctx) {
+  TcpServer* server = reinterpret_cast<TcpServer*>(ctx);
 }
 
 static void OnClientEvent(EventBuffer* bev, short events, void* ctx) {
+  TcpServer* server = reinterpret_cast<TcpServer*>(ctx);
   DisConnectType t;
   struct evbuffer* input = bufferevent_get_input(bev);
   int finished = 0;
@@ -113,7 +117,7 @@ static void OnClientEvent(EventBuffer* bev, short events, void* ctx) {
     t = DisConnectType::ERROR;
   }
   if (finished) {
-    disconn_callback_(t);
+    server->disconn_callback_(t);
   }
 }
 

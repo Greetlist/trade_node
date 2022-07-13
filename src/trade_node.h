@@ -9,14 +9,15 @@
 namespace greetlist::trader {
 class TradeNode {
 public:
-  explicit TradeNode(const std::unordered_map<std::string, std::string>& config);
+  explicit TradeNode(const std::string&& config);
   TradeNode operator=(const TradeNode& node) = delete;
   ~TradeNode();
   void Init();
   void Start();
 private:
   TcpSessionManager* session_manager_;
-  std::unordered_map<std::string, std::string> config_;
+  std::string config_file_;
+  std::thread session_thread_;
 };
 
 } //namespace greetlist::trader

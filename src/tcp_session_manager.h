@@ -6,29 +6,29 @@
 #include "tcp_server.h"
 #include "tcp_session.h"
 #include "common_type_def.h"
+#include "yaml-cpp/yaml.h"
 
 namespace greetlist::trader {
 
 class TcpSessionManager {
 public:
-  TcpSessionManager(std::unordered_map<std::string, std::string>&& config);
+  TcpSessionManager(const std::string& config_file);
   TcpSessionManager operator=(const TcpSessionManager& m) = delete;
   ~TcpSessionManager();
   void Init();
   bool InitServer();
-  bool GetDownstreamInfo();
-  bool InitDownstream();
+  void InitConfigFile();
+  void InitDownstream();
   TcpSession* InitSingleSession(const std::string& host, const int& port);
+  void SetBufferEventCallBack(EventBuffer* buffer);
   void Start();
   void Stop();
   EventBase* GetEventBase();
-  void OnConnect(EventBuffer* ev_buff, int client_fd);
-  void OnDisConnect(DisConnectType disconn_type);
-  void OnRecvData(std::shared_ptr<char> data);
 private:
-  int port_ = -1;
+  int server_port_ = -1;
   TcpServer* tcp_server_;
   EventBase* base_;
+  std::string config_file_;
   std::unordered_map<std::string, std::string> config_;
   std::unordered_map<std::string, std::pair<std::string, int>> downstream_info_;
   //std::unordered_map<int, std::shared_ptr<TcpSession>> downstream_;

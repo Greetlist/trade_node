@@ -1,0 +1,15 @@
+server_id: test0
+server_port: 3000
+down_stream:
+  - node_id: test1
+    host: 127.0.0.1
+    port: 3001
+  - node_id: test2
+    host: 127.0.0.1
+    port: 3002
+  - node_id: test3
+    host: 127.0.0.1
+    port: 3003
+  - node_id: test4
+    host: 127.0.0.1
+    port: 3004
